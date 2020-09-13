@@ -62,12 +62,36 @@ func plot(chartType int, d data, name string) error {
 	return nil
 }
 
+func readConfig() (int, error) {
+	configFile, err := os.Open("service.config")
+	if err != nil {
+		return 8080, err
+	}
+	fmt.Println("Successfully opened Configuration file")
+	scanner := bufio.NewScanner(configFile)
+	for scanner.Scan(){
+		line := scanner.Text()
+		if strings.Contains(line, "port") { 
+			p := strings.Split(line, "=")
+			p[1] = strings.TrimSpace(p[1])
+			port, _ := strconv.Atoi(p[1])
+			return port, nil
+		}else{
+			port := 8080
+			fmt.Printf("Could not find port in config file. Listening on default")
+			return port, nil
+		}
+	}
+	return port, nil
+}
+
+var port int
+
+func init() {
+	port, _ = readConfig()
+}
 
 func main() {
-	lines, err := openCsv("test.csv")
-	if err != nil{
-		fmt.Printf("Could not read CSV")
-	}
-	d:= getData(lines, ",")
-	plot(0, d, "Test")
+	fmt.Printf("Listening on port %d...\n", port)
+
 }
