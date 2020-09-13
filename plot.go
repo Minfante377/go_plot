@@ -7,11 +7,20 @@ import (
 	"os"
 	"strings"
 	"github.com/go-echarts/go-echarts/charts"
+	"net/http"
+	"encoding/json"
+	"html/template"
+	"log"
 )
 
 type data struct {
 	x []string
 	y []string
+}
+
+type message struct{
+	path string
+	plotType int
 }
 
 func openCsv(path string) ([]string, error) {
@@ -85,13 +94,43 @@ func readConfig() (int, error) {
 	return port, nil
 }
 
-var port int
+func renderTemplate(w http.ResponseWriter, tmpl string) {                                  
+	err := templates.ExecuteTemplate(w, tmpl+".html", nil)                                        
+	if err != nil{                                                                              
+		http.Error(w, err.Error(), http.StatusInternalServerError)                          
+		return                                                                              
+	}                                                                                           
+}    
 
+func plotHandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Printf("Plotting...\n")
+	decoder := json.NewDecoder(r.Body)
+	var msg message
+	decoder.Decode(&msg)
+	path := msg.path
+	plotType := msg.plotType
+	title := "Test"
+	delimiter:= ","
+	lines, _ := openCsv(path)
+	d := getData(lines, delimiter)
+	plot(plotType, d, title)
+	http.Redirect(w, r, "/view/", http.StatusFound)                                       
+}             
+
+func viewHandler(w http.ResponseWriter, r *http.Request) {
+	renderTemplate(w, "view")
+}
+
+var port int
+var templates = template.Must(template.ParseFiles("templates/view.html"))
 func init() {
 	port, _ = readConfig()
+
 }
 
 func main() {
 	fmt.Printf("Listening on port %d...\n", port)
-
+	http.HandleFunc("/view/", viewHandler)                                         
+	http.HandleFunc("/plot/", plotHandler)                                         
+	log.Fatal(http.ListenAndServe(":" + strconv.Itoa(port), nil))
 }
