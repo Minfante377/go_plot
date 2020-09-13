@@ -1,9 +1,11 @@
 package main
 
-import(
+import (
+	"bufio"
+	"strconv"
 	"fmt"
 	"os"
-	"encoding/csv"
+	"strings"
 	"github.com/go-echarts/go-echarts/charts"
 )
 
@@ -12,25 +14,27 @@ type data struct {
 	y []string
 }
 
-func openCsv(path string) ([][]string, error) {
+func openCsv(path string) ([]string, error) {
 	csvFile, err := os.Open(path)
 	if err != nil {
 		return nil, err
 	}
 	fmt.Println("Successfully opened CSV file")
-	defer csvFile.Close()
-	csvLines, err := csv.NewReader(csvFile).ReadAll()
-	if err != nil {
-		return nil, err
+	scanner := bufio.NewScanner(csvFile)
+	var csvLines []string
+	for scanner.Scan(){
+		csvLines = append(csvLines, scanner.Text())
 	}
 	return csvLines,nil
 }
 
-func getData(lines [][]string, delimiter string) data {
+func getData(lines []string, delimiter string) data {
 	var d data
 	for i, _ := range(lines){
-		d.x = append(d.x, lines[i][0])
-		d.y = append(d.y, lines[i][1])
+		lines[i] = strings.Trim(lines[i], "\n")
+		s := strings.Split(lines[i], delimiter)
+		d.x = append(d.x, s[0])
+		d.y = append(d.y, s[1])
 	}
 	return d
 }
