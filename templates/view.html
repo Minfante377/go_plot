@@ -18,11 +18,11 @@
 	user-select: none;
 }
 
-				@media (min-width: 768px) {
-					.bd-placeholder-img-lg {
-						font-size: 3.5rem;
+					@media (min-width: 768px) {
+						.bd-placeholder-img-lg {
+							font-size: 3.5rem;
+						}
 					}
-				}
 		</style>
 		<!-- Custom styles for this template -->
 		<link href="dashboard.css" rel="stylesheet">
@@ -39,6 +39,14 @@
 					<div class="sidebar-sticky pt-3">
 						<ul class="nav flex-column">
 							<li class="nav-item">
+								<label for="title">Title:</label>
+								<input type="text" id="title" name="title"><br><br>
+							</li>
+							<li class="nav-item">
+								<label for="delimiter">Delimiter:</label>
+								<input type="text" id="delimiter" name="delimiter"><br><br>
+							</li>
+							<li class="nav-item">
 								<label for="charts">Choose a chart:</label>
 							</li>
 							<li class="nav-item">
@@ -54,17 +62,27 @@
 
 									<script>
 										const button = document.getElementById('plotButton');
-var path = document.getElementById('csvfile').value;
-var plotType = document.getElementById('type').value;
+
+
 button.addEventListener('click', async _ => {
-	try {     
+	try {   
+		var path = document.getElementById('csvfile').value;
+		var plotType = document.getElementById('type').value;
+		var title = document.getElementById('title').value;
+		var delimiter = document.getElementById('delimiter').value;
+
+		var body = {
+			"Path":path,
+			"PlotType":plotType,
+			"Title":title,
+			"Delimiter":delimiter
+		};
 		const response = await fetch('/plot/', {
-			method: 'post',
-			body: {
-				path:path,
-				plotType:plotType
-			}
+			method: "post",
+			headers: {"content-type": "application/json"},
+			body:JSON.stringify(body)
 		});
+		console.log(body);
 		console.log('Completed!', response);
 	} catch(err) {
 		console.error(`Error: ${err}`);

@@ -2,15 +2,16 @@ package main
 
 import (
 	"bufio"
-	"strconv"
-	"fmt"
-	"os"
-	"strings"
-	"github.com/go-echarts/go-echarts/charts"
-	"net/http"
 	"encoding/json"
+	"fmt"
 	"html/template"
 	"log"
+	"net/http"
+	"os"
+	"strconv"
+	"strings"
+
+	"github.com/go-echarts/go-echarts/charts"
 )
 
 type data struct {
@@ -18,9 +19,11 @@ type data struct {
 	y []string
 }
 
-type message struct{
-	path string
-	plotType int
+type Message struct{
+	Delimiter string
+	Path string  
+	PlotType int
+	Title string 
 }
 
 func openCsv(path string) ([]string, error) {
@@ -54,7 +57,7 @@ func renderBar(d data, name string) error{
 	bar := charts.NewBar()
 	bar.SetGlobalOptions(charts.TitleOpts{Title: name})
 	bar.AddXAxis(d.x).AddYAxis("",d.y)
-	f, err := os.Create("tmp/"+name+".html")
+	f, err := os.Create("tmp/plot.html")
 	if err != nil{
 		return err
 	}
@@ -104,21 +107,32 @@ func renderTemplate(w http.ResponseWriter, tmpl string) {
 
 func plotHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Printf("Plotting...\n")
-	decoder := json.NewDecoder(r.Body)
-	var msg message
-	decoder.Decode(&msg)
-	path := msg.path
-	plotType := msg.plotType
-	title := "Test"
-	delimiter:= ","
+	var msg Message 
+	json.NewDecoder(r.Body).Decode(&msg)
+	fmt.Printf("%+v\n",msg)
+	s := strings.Split(msg.Path,"\\")
+	path := s[len(s)-1]
+	plotType := msg.PlotType
+	title := msg.Title
+	delimiter:= msg.Delimiter
 	lines, _ := openCsv(path)
 	d := getData(lines, delimiter)
 	plot(plotType, d, title)
-	http.Redirect(w, r, "/view/", http.StatusFound)                                       
+	http.Redirect(w, r, "/show/", http.StatusFound)                                       
 }             
 
 func viewHandler(w http.ResponseWriter, r *http.Request) {
 	renderTemplate(w, "view")
+}
+
+func showHandler(w http.ResponseWriter, r *http.Request) {
+	t, err := template.ParseFiles("tmp/plot.html")
+	if err != nil{
+		fmt.Printf("Error loading plot\n")
+	}else{
+		fmt.Printf("Showing plot...\n")
+	}
+	t.Execute(w, nil)
 }
 
 var port int
@@ -130,7 +144,8 @@ func init() {
 
 func main() {
 	fmt.Printf("Listening on port %d...\n", port)
-	http.HandleFunc("/view/", viewHandler)                                         
-	http.HandleFunc("/plot/", plotHandler)                                         
+	http.HandleFunc("/view/", viewHandler)                
+	http.HandleFunc("/plot/", plotHandler)
+	http.HandleFunc("/show/", showHandler)
 	log.Fatal(http.ListenAndServe(":" + strconv.Itoa(port), nil))
 }
