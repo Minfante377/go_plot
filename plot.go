@@ -118,7 +118,7 @@ func plotHandler(w http.ResponseWriter, r *http.Request) {
 	lines, _ := openCsv(path)
 	d := getData(lines, delimiter)
 	plot(plotType, d, title)
-	http.Redirect(w, r, "/show/", http.StatusFound)                                       
+	http.Redirect(w, r, "/show/", http.StatusSeeOther)                                       
 }             
 
 func viewHandler(w http.ResponseWriter, r *http.Request) {
