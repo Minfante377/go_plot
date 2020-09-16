@@ -49,8 +49,10 @@
 								<label for="charts">Choose a chart:</label>
 							</li>
 							<li class="nav-item">
-								<select name="chartType" id="type" multiple>
+								<select class="selectpicker" name="chartType" id="chartType">
 									<option value="0">Bar</option>
+									<option value="1">Line</option>
+									<option value="2">Scatter</option>
 								</select>
 							</li>
 							<li class="nav-item">
@@ -66,7 +68,7 @@
 button.addEventListener('click', async _ => {
 	try {   
 		var path = document.getElementById('csvfile').value;
-		var plotType = document.getElementById('type').value;
+		var plotType = document.getElementById('chartType').value;
 		var title = document.getElementById('title').value;
 		var delimiter = document.getElementById('delimiter').value;
 

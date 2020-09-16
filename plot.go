@@ -22,7 +22,7 @@ type data struct {
 type Message struct{
 	Delimiter string
 	Path string  
-	PlotType int
+	PlotType string
 	Title string 
 }
 
@@ -65,10 +65,44 @@ func renderBar(d data, name string) error{
 	return nil
 }
 
+func renderLine(d data, name string) error{
+
+	line := charts.NewLine()
+	line.SetGlobalOptions(charts.TitleOpts{Title: name})
+	line.AddXAxis(d.x)
+	line.AddYAxis("Y",d.y)
+	f, err := os.Create("tmp/plot.html")
+	if err != nil{
+		return err
+	}
+	line.Render(f)
+	return nil
+}
+
+func renderScatter(d data, name string) error{
+
+	scatter := charts.NewScatter()
+	scatter.SetGlobalOptions(charts.TitleOpts{Title: name})
+	scatter.AddXAxis(d.x)
+	scatter.AddYAxis("Y",d.y)
+	f, err := os.Create("tmp/plot.html")
+	if err != nil{
+		return err
+	}
+	scatter.Render(f)
+	return nil
+}
+
 func plot(chartType int, d data, name string) error {	
 	switch chartType {
 	case 0:
 		err := renderBar(d, name)
+		return err
+	case 1:
+		err := renderLine(d, name)
+		return err
+	case 2:
+		err := renderScatter(d, name)
 		return err
 	}
 	return nil
@@ -112,7 +146,7 @@ func plotHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Printf("%+v\n",msg)
 	s := strings.Split(msg.Path,"\\")
 	path := s[len(s)-1]
-	plotType := msg.PlotType
+	plotType, _ := strconv.Atoi(msg.PlotType)
 	title := msg.Title
 	delimiter:= msg.Delimiter
 	lines, _ := openCsv(path)
