@@ -43,8 +43,15 @@
 							</li>
 							<li class="nav-item">
 								<label for="delimiter">Delimiter:</label>
-								<input type="text" id="delimiter" name="delimiter"><br><br>
+								<input type="text" id="delimiter" placeholder="," name="delimiter"><br><br>
 							</li>
+							<li class="nav-item">
+								<label for="format">Format:</label>
+								<input type="text" placeholder="x,y,y" id="format" name="format"><br><br>
+							</li>
+							<div class="checkbox">
+								  <label><input type="checkbox" id="checkTitle" value="True">Have headers</label>
+							</div>
 							<li class="nav-item">
 								<label for="charts">Choose a chart:</label>
 							</li>
@@ -71,12 +78,20 @@ button.addEventListener('click', async _ => {
 		var plotType = document.getElementById('chartType').value;
 		var title = document.getElementById('title').value;
 		var delimiter = document.getElementById('delimiter').value;
+		if ((document.getElementById('checkTitle').checked)){
+			var checkTitle = "True";
+		}else{
+			var checkTitle = "False";
+		}
+		var format = document.getElementById('format').value;
 
 		var body = {
 			"Path":path,
 			"PlotType":plotType,
 			"Title":title,
-			"Delimiter":delimiter
+			"Delimiter":delimiter,
+			"Format":format,
+			"HaveTitles":checkTitle
 		};
 		const response = await fetch('/plot/', {
 			method: "post",

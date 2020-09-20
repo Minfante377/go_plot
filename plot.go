@@ -14,16 +14,23 @@ import (
 	"github.com/go-echarts/go-echarts/charts"
 )
 
+type axe struct{
+	values []string
+	header string
+}
+
 type data struct {
-	x []string
-	y []string
+	xs []axe
+	ys []axe
 }
 
 type Message struct{
 	Delimiter string
 	Path string  
 	PlotType string
-	Title string 
+	Title string
+	HaveTitles string
+	Format string
 }
 
 func openCsv(path string) ([]string, error) {
@@ -40,14 +47,80 @@ func openCsv(path string) ([]string, error) {
 	return csvLines,nil
 }
 
-func getData(lines []string, delimiter string) data {
+func getFormat(format string, delimiter string) []int{
+	var parsed []int
+	s := strings.Split(format, delimiter)
+	for i := range(s){
+		if s[i] == "x"{
+			parsed = append(parsed,0)
+			fmt.Printf("Appending x...\n")
+		}else if(s[i] == "y"){
+			parsed = append(parsed, 1)
+			fmt.Printf("Appending y...\n")
+		}
+	}
+	return parsed
+}
+		
+
+func getData(lines []string, delimiter string, format string, headers bool) data {
 	var d data
-	for i, _ := range(lines){
+	var j, k, header_flag int
+	parsed := getFormat(format, delimiter)
+	fmt.Printf("Parsed format is %v\n", parsed)
+	j = 0
+	k = 0
+	header_flag = 0
+	if headers{
+		hds := strings.Trim(lines[0], "\n")
+		s := strings.Split(hds, delimiter)
+		for i := range(s){
+			var a axe
+			if parsed[i] == 0 {
+				d.xs = append(d.xs, a)
+				d.xs[j].header = s[i]
+				j = j+1
+			}else{
+				d.ys = append(d.ys, a)
+				d.ys[k].header = s[i]
+				k = k+1
+			}
+		}
+		header_flag = 1
+	}else{
+		for i := range(parsed){
+			var a axe
+			if parsed[i] == 0{
+				d.xs = append(d.xs, a)
+				d.xs[j].header = " "
+				j = j+1
+			}else{
+				d.ys = append(d.ys, a)
+				d.ys[k].header = " "
+				k = k+1
+			}
+		}
+	}
+	j = 0
+	k = 0
+	for i := header_flag; i < len(lines); i++ {
 		lines[i] = strings.Trim(lines[i], "\n")
 		s := strings.Split(lines[i], delimiter)
-		d.x = append(d.x, s[0])
-		d.y = append(d.y, s[1])
+		for l := range(s){
+			if parsed[l] == 0 {
+				fmt.Printf("Addding x value\n")
+				d.xs[j].values = append(d.xs[j].values, s[l])
+				j = j + 1
+			}else{
+				fmt.Printf("Addding y value\n")
+				d.ys[k].values = append(d.ys[k].values, s[l])
+				k = k +1
+			}
+		}
+		j = 0
+		k = 0
 	}
+	fmt.Printf("Data ready!\n")
 	return d
 }
 
@@ -56,7 +129,11 @@ func renderBar(d data, name string) error{
 
 	bar := charts.NewBar()
 	bar.SetGlobalOptions(charts.TitleOpts{Title: name})
-	bar.AddXAxis(d.x).AddYAxis("",d.y)
+	for i := range(d.xs){
+		for j := range(d.ys){
+			bar.AddXAxis(d.xs[i].values).AddYAxis(d.ys[j].header,d.ys[j].values)
+		}
+	}
 	f, err := os.Create("tmp/plot.html")
 	if err != nil{
 		return err
@@ -69,8 +146,12 @@ func renderLine(d data, name string) error{
 
 	line := charts.NewLine()
 	line.SetGlobalOptions(charts.TitleOpts{Title: name})
-	line.AddXAxis(d.x)
-	line.AddYAxis("Y",d.y)
+	for i := range(d.xs){
+		line.AddXAxis(d.xs[i].values)
+	}
+	for j := range(d.ys){
+		line.AddYAxis(d.ys[j].header, d.ys[j].values)
+	}
 	f, err := os.Create("tmp/plot.html")
 	if err != nil{
 		return err
@@ -83,8 +164,12 @@ func renderScatter(d data, name string) error{
 
 	scatter := charts.NewScatter()
 	scatter.SetGlobalOptions(charts.TitleOpts{Title: name})
-	scatter.AddXAxis(d.x)
-	scatter.AddYAxis("Y",d.y)
+	for i := range(d.xs){
+		scatter.AddXAxis(d.xs[i].values)
+	}
+	for j := range(d.ys){
+		scatter.AddYAxis(d.ys[j].header, d.ys[j].values)
+	}
 	f, err := os.Create("tmp/plot.html")
 	if err != nil{
 		return err
@@ -93,7 +178,8 @@ func renderScatter(d data, name string) error{
 	return nil
 }
 
-func plot(chartType int, d data, name string) error {	
+func plot(chartType int, d data, name string) error {
+	fmt.Printf("Plotting...\n")
 	switch chartType {
 	case 0:
 		err := renderBar(d, name)
@@ -107,6 +193,7 @@ func plot(chartType int, d data, name string) error {
 	}
 	return nil
 }
+
 
 func readConfig() (int, error) {
 	configFile, err := os.Open("service.config")
@@ -141,7 +228,8 @@ func renderTemplate(w http.ResponseWriter, tmpl string) {
 
 func plotHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Printf("Plotting...\n")
-	var msg Message 
+	var msg Message
+	var haveHeader bool
 	json.NewDecoder(r.Body).Decode(&msg)
 	fmt.Printf("%+v\n",msg)
 	s := strings.Split(msg.Path,"\\")
@@ -149,8 +237,16 @@ func plotHandler(w http.ResponseWriter, r *http.Request) {
 	plotType, _ := strconv.Atoi(msg.PlotType)
 	title := msg.Title
 	delimiter:= msg.Delimiter
+	if msg.HaveTitles == "True"{
+		haveHeader = true
+		fmt.Printf("I have headers!\n")
+	}else{
+		haveHeader = false
+		fmt.Printf("I do not have headers!\n")
+	}
+	format := msg.Format
 	lines, _ := openCsv(path)
-	d := getData(lines, delimiter)
+	d := getData(lines, delimiter, format, haveHeader)
 	plot(plotType, d, title)
 	http.Redirect(w, r, "/show/", http.StatusSeeOther)                                       
 }             
