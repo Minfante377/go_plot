@@ -8,6 +8,7 @@ Installation steps are very simple. The only additional requirementapart from Go
 
 > https://github.com/go-echarts/go-echarts
 
+
 ## Support
 
 The app supports:
@@ -19,7 +20,7 @@ The app supports:
 ## Usage
 
 The usage is very straightforward. Just follow the steps and press plot!
-The app will automatically redirect you to a route to visualize the generated HTML, but it will also be saved in the *tmp/* folder.
+The app will automatically redirect you to a route to visualize thegenerated HTML, but it will also be saved in the *tmp/* folder.
 
 ## Work to be done
 
