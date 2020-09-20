@@ -178,6 +178,23 @@ func renderScatter(d data, name string) error{
 	return nil
 }
 
+func renderPie(d data, name string) error{
+
+	pie := charts.NewPie()
+	pie.SetGlobalOptions(charts.TitleOpts{Title: name})
+	x := make(map[string]interface{})
+	for i := range(d.xs[0].values){
+		x[d.xs[0].values[i]] = d.ys[0].values[i]
+	}
+	pie.Add("", x)
+	f, err := os.Create("tmp/plot.html")
+	if err != nil{
+		return err
+	}
+	pie.Render(f)
+	return nil
+}
+
 func plot(chartType int, d data, name string) error {
 	fmt.Printf("Plotting...\n")
 	switch chartType {
@@ -189,6 +206,9 @@ func plot(chartType int, d data, name string) error {
 		return err
 	case 2:
 		err := renderScatter(d, name)
+		return err
+	case 3:
+		err := renderPie(d, name)
 		return err
 	}
 	return nil
